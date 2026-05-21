@@ -121,7 +121,12 @@ Projeto desenvolvido em grupo — Engenharia de Software, 2025.
 
 ---
 
-# Link Video Apresentação:
+# Link Video Apresentação: https://youtu.be/GSFA5mtf8cA
+## Link Site AcertaConta: https://greeter-ability-kindly.ngrok-free.dev
+
+---
+
+
 
 ## Observações Técnicas
 
