@@ -1,0 +1,931 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>AcertaConta</title>
+<meta name="description" content="Divida despesas em grupo sem complicacao" />
+<meta name="theme-color" content="#0b0e14" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="AcertaConta" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0b0e14;
+    --surface: #13171f;
+    --surface2: #1c2130;
+    --border: #252c3d;
+    --accent: #4ade80;
+    --accent2: #22c55e;
+    --danger: #f87171;
+    --text: #e8eaf0;
+    --muted: #6b7491;
+    --radius: 14px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .noise {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.4;
+  }
+
+  .glow {
+    position: fixed; width: 600px; height: 600px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(74,222,128,0.07) 0%, transparent 70%);
+    top: -200px; right: -200px; pointer-events: none; z-index: 0;
+  }
+
+  .page { display: none; position: relative; z-index: 1; }
+  .page.active { display: block; }
+
+  .auth-wrap {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+
+  .auth-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 48px 40px;
+    width: 100%; max-width: 420px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.4);
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px; font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+
+  .logo span { color: var(--text); }
+
+  .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 36px; }
+
+  .form-group { margin-bottom: 18px; }
+  label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+
+  input, select {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 16px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 15px;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  select option { background: var(--bg); }
+
+  .btn {
+    width: 100%; padding: 14px; border: none; border-radius: 10px;
+    font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px;
+  }
+  .btn-primary { background: var(--accent); color: #0b0e14; }
+  .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+  .btn-ghost {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text); margin-top: 12px;
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-sm {
+    width: auto; padding: 8px 16px; font-size: 13px; border-radius: 8px;
+  }
+  .btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
+  .btn-danger:hover { background: var(--danger); color: #fff; }
+
+  .switch-link { text-align: center; margin-top: 24px; font-size: 14px; color: var(--muted); }
+  .switch-link a { color: var(--accent); cursor: pointer; text-decoration: none; font-weight: 500; }
+
+  .error-msg { color: var(--danger); font-size: 13px; margin-top: 12px; text-align: center; }
+
+  .app-layout { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+
+  .sidebar {
+    background: var(--surface); border-right: 1px solid var(--border);
+    padding: 32px 20px; display: flex; flex-direction: column; gap: 8px;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  }
+
+  .sidebar-logo {
+    font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800;
+    color: var(--accent); padding: 0 12px; margin-bottom: 24px;
+  }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+    border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500;
+    color: var(--muted); transition: all 0.15s; border: none; background: none; width: 100%; text-align: left;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: rgba(74,222,128,0.12); color: var(--accent); }
+
+  .nav-icon { font-size: 18px; width: 20px; text-align: center; }
+
+  .sidebar-section { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); padding: 0 16px; margin: 16px 0 6px; }
+
+  .group-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; border-radius: 10px; cursor: pointer;
+    font-size: 13px; color: var(--muted); transition: all 0.15s;
+  }
+  .group-nav:hover { background: var(--surface2); color: var(--text); }
+  .group-nav.active { background: rgba(74,222,128,0.1); color: var(--accent); }
+  .group-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .main-content { padding: 40px; overflow-y: auto; }
+
+  .page-header { margin-bottom: 32px; }
+  .page-title { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; }
+  .page-desc { color: var(--muted); font-size: 14px; margin-top: 6px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px; margin-bottom: 20px;
+  }
+
+  .card-title {
+    font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700;
+    margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+  }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+  }
+  .stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
+  .stat-value { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; }
+  .stat-value.green { color: var(--accent); }
+  .stat-value.red { color: var(--danger); }
+
+  .despesa-item {
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 16px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface2); margin-bottom: 10px; transition: border-color 0.15s;
+  }
+  .despesa-item:hover { border-color: var(--accent); }
+
+  .despesa-icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: rgba(74,222,128,0.12); display: flex; align-items: center;
+    justify-content: center; font-size: 20px; flex-shrink: 0;
+  }
+  .despesa-info { flex: 1; }
+  .despesa-desc { font-weight: 500; font-size: 15px; }
+  .despesa-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .despesa-valor { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; color: var(--accent); }
+
+  .saldo-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface2); margin-bottom: 8px;
+  }
+  .saldo-nome { font-weight: 500; font-size: 14px; }
+  .saldo-valor { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; }
+  .saldo-positivo { color: var(--accent); }
+  .saldo-negativo { color: var(--danger); }
+  .saldo-zero { color: var(--muted); }
+
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(74,222,128,0.2); display: flex; align-items: center;
+    justify-content: center; font-size: 13px; font-weight: 700; color: var(--accent);
+  }
+
+  .invite-box {
+    background: var(--bg); border: 1px dashed var(--border);
+    border-radius: 10px; padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px; margin-top: 16px;
+  }
+  .invite-link { font-size: 13px; color: var(--muted); flex: 1; word-break: break-all; }
+  .copy-btn { flex-shrink: 0; }
+
+  .participants-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .participant-tag {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 6px 12px 6px 8px; font-size: 13px;
+  }
+
+  .checkbox-group { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+  .checkbox-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+    transition: all 0.15s; background: var(--bg);
+  }
+  .checkbox-item:hover { border-color: var(--accent); }
+  .checkbox-item input { width: auto; cursor: pointer; accent-color: var(--accent); }
+
+  .tag-convite {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3);
+    border-radius: 6px; padding: 4px 10px; font-size: 12px; color: var(--accent); margin-bottom: 20px;
+  }
+
+  .toast {
+    position: fixed; bottom: 28px; right: 28px; z-index: 9999;
+    background: var(--surface); border: 1px solid var(--accent);
+    border-radius: 12px; padding: 14px 20px; font-size: 14px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    transform: translateY(80px); opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  .user-info {
+    margin-top: auto; padding: 16px; border: 1px solid var(--border);
+    border-radius: 10px; display: flex; align-items: center; gap: 12px;
+  }
+  .user-nome { font-size: 14px; font-weight: 500; }
+  .user-email { font-size: 12px; color: var(--muted); }
+
+  .logout-btn {
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    font-size: 18px; margin-left: auto; padding: 4px; border-radius: 6px;
+    transition: color 0.15s;
+  }
+  .logout-btn:hover { color: var(--danger); }
+
+  .loading { opacity: 0.5; pointer-events: none; }
+
+  .bottom-nav {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+    grid-template-columns: repeat(5, 1fr);
+  }
+  .bottom-nav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    font-size: 10px; font-family: 'DM Sans', sans-serif; padding: 6px 4px;
+    transition: color 0.15s; width: 100%;
+  }
+  .bottom-nav-item.active { color: var(--accent); }
+  .bottom-nav-item .bnav-icon { font-size: 20px; }
+
+  .mobile-header {
+    display: none; position: sticky; top: 0; z-index: 99;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 14px 20px; align-items: center; justify-content: space-between;
+  }
+  .mobile-logo { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--accent); }
+
+  .install-btn {
+    display: none; position: fixed; bottom: 80px; left: 50%;
+    transform: translateX(-50%); z-index: 999;
+    background: var(--accent); color: #0b0e14;
+    border: none; border-radius: 50px; padding: 14px 28px;
+    font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
+    cursor: pointer; box-shadow: 0 8px 32px rgba(74,222,128,0.3);
+    align-items: center; gap: 10px; white-space: nowrap;
+  }
+  .install-btn:hover { background: var(--accent2); }
+
+  @media (max-width: 768px) {
+    .app-layout { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .mobile-header { display: flex; }
+    .bottom-nav { display: grid; }
+    .main-content { padding: 16px 16px calc(80px + env(safe-area-inset-bottom)); }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .auth-card { padding: 32px 24px; }
+    .page-title { font-size: 22px; }
+    .stat-value { font-size: 22px; }
+    .page-header { flex-direction: column; gap: 12px; }
+    .page-header .btn { width: 100%; }
+    .despesa-valor { font-size: 14px; }
+    .card { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+<div class="glow"></div>
+
+<div id="page-auth" class="page active">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="logo">Acerta<span>Conta</span></div>
+      <div class="subtitle" id="auth-subtitle">Divida despesas sem complicação</div>
+
+      <div id="form-login">
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" id="login-email" placeholder="seu@email.com" />
+        </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <input type="password" id="login-senha" placeholder="••••••••" />
+        </div>
+        <button class="btn btn-primary" onclick="login()">Entrar</button>
+        <div id="login-erro" class="error-msg"></div>
+        <div class="switch-link">Não tem conta? <a onclick="toggleAuth()">Cadastre-se</a></div>
+      </div>
+
+      <div id="form-cadastro" style="display:none">
+        <div class="form-group">
+          <label>Nome</label>
+          <input type="text" id="cadastro-nome" placeholder="Seu nome completo" />
+        </div>
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" id="cadastro-email" placeholder="seu@email.com" />
+        </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <input type="password" id="cadastro-senha" placeholder="Mínimo 6 caracteres" />
+        </div>
+        <button class="btn btn-primary" onclick="cadastrar()">Criar conta</button>
+        <div id="cadastro-erro" class="error-msg"></div>
+        <div class="switch-link">Já tem conta? <a onclick="toggleAuth()">Faça login</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="page-app" class="page">
+
+  <div class="mobile-header">
+    <div class="mobile-logo">AcertaConta</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="avatar" id="mobile-avatar">?</div>
+      <button class="logout-btn" onclick="logout()" title="Sair">⏻</button>
+    </div>
+  </div>
+
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">AcertaConta</div>
+
+      <button class="nav-item active" onclick="showSection('dashboard')" id="nav-dashboard">
+        <span class="nav-icon">⬡</span> Dashboard
+      </button>
+      <button class="nav-item" onclick="showSection('novo-grupo')" id="nav-novo-grupo">
+        <span class="nav-icon">＋</span> Novo Grupo
+      </button>
+      <button class="nav-item" onclick="showSection('entrar-grupo')" id="nav-entrar-grupo">
+        <span class="nav-icon">⊕</span> Entrar por Link
+      </button>
+
+      <div class="sidebar-section">Meus Grupos</div>
+      <div id="sidebar-grupos"></div>
+
+      <div class="user-info" id="sidebar-user">
+        <div class="avatar" id="sidebar-avatar">?</div>
+        <div>
+          <div class="user-nome" id="sidebar-nome"></div>
+          <div class="user-email" id="sidebar-email"></div>
+        </div>
+        <button class="logout-btn" onclick="logout()" title="Sair">⏻</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div id="section-dashboard" class="section">
+        <div class="page-header">
+          <div class="page-title">Dashboard</div>
+          <div class="page-desc">Visão geral dos seus grupos e despesas</div>
+        </div>
+        <div id="dashboard-content">
+          <div class="empty-state">
+            <div class="empty-icon">💸</div>
+            <div class="empty-title">Nenhum grupo ainda</div>
+            <p>Crie ou entre em um grupo para começar</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="section-novo-grupo" class="section" style="display:none">
+        <div class="page-header">
+          <div class="page-title">Novo Grupo</div>
+          <div class="page-desc">Crie um grupo para dividir despesas</div>
+        </div>
+        <div class="card" style="max-width:480px">
+          <div class="form-group">
+            <label>Nome do Grupo</label>
+            <input type="text" id="novo-grupo-nome" placeholder="Ex: Viagem para SP" />
+          </div>
+          <button class="btn btn-primary" onclick="criarGrupo()">Criar Grupo</button>
+          <div id="novo-grupo-erro" class="error-msg"></div>
+        </div>
+      </div>
+
+      <div id="section-entrar-grupo" class="section" style="display:none">
+        <div class="page-header">
+          <div class="page-title">Entrar por Link</div>
+          <div class="page-desc">Cole o link de convite para entrar num grupo</div>
+        </div>
+        <div class="card" style="max-width:480px">
+          <div class="form-group">
+            <label>Link ou Código de Convite</label>
+            <input type="text" id="entrar-link" placeholder="Cole o código aqui" />
+          </div>
+          <button class="btn btn-primary" onclick="entrarGrupo()">Entrar no Grupo</button>
+          <div id="entrar-erro" class="error-msg"></div>
+        </div>
+      </div>
+
+      <div id="section-grupo" class="section" style="display:none">
+        <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div class="page-title" id="grupo-titulo"></div>
+            <div class="page-desc" id="grupo-desc"></div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="showRegistrarDespesa()">+ Nova Despesa</button>
+        </div>
+
+        <div class="tag-convite" id="convite-tag" style="cursor:pointer" onclick="copiarConvite()">
+          🔗 Copiar link de convite
+        </div>
+
+        <div class="grid-2" style="margin-bottom:20px">
+          <div>
+            <div class="card-title">💰 Saldos</div>
+            <div id="saldos-lista"></div>
+          </div>
+          <div>
+            <div class="card-title">👥 Participantes</div>
+            <div id="participantes-lista" class="participants-list"></div>
+          </div>
+        </div>
+
+        <div class="card-title">🧾 Despesas</div>
+        <div id="despesas-lista"></div>
+      </div>
+
+      <div id="section-nova-despesa" class="section" style="display:none">
+        <div class="page-header" style="display:flex;align-items:center;gap:16px">
+          <button class="btn btn-ghost btn-sm" onclick="showGrupo(currentGrupoId)">← Voltar</button>
+          <div>
+            <div class="page-title">Nova Despesa</div>
+            <div class="page-desc">Registrar gasto com divisão automática</div>
+          </div>
+        </div>
+        <div class="card" style="max-width:540px">
+          <div class="form-group">
+            <label>Descrição</label>
+            <input type="text" id="desp-desc" placeholder="Ex: Jantar no restaurante" />
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Valor (R$)</label>
+              <input type="number" id="desp-valor" placeholder="0,00" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Data</label>
+              <input type="date" id="desp-data" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Dividir entre (divisão igualitária)</label>
+            <div class="checkbox-group" id="desp-participantes"></div>
+          </div>
+          <div class="form-group" id="desp-preview" style="display:none">
+            <label>Valor por pessoa</label>
+            <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--accent)" id="desp-por-pessoa"></div>
+          </div>
+          <button class="btn btn-primary" onclick="registrarDespesa()">Registrar Despesa</button>
+          <div id="desp-erro" class="error-msg"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<button class="install-btn" id="install-btn" onclick="deferredPrompt && deferredPrompt.prompt()">
+  📲 Instalar App
+</button>
+
+<nav class="bottom-nav" id="bottom-nav">
+  <button class="bottom-nav-item active" id="bnav-dashboard" onclick="showSection('dashboard');updateBottomNav('dashboard')">
+    <span class="bnav-icon">⬡</span>
+    <span>Início</span>
+  </button>
+  <button class="bottom-nav-item" id="bnav-novo-grupo" onclick="showSection('novo-grupo');updateBottomNav('novo-grupo')">
+    <span class="bnav-icon">＋</span>
+    <span>Novo</span>
+  </button>
+  <button class="bottom-nav-item" id="bnav-entrar-grupo" onclick="showSection('entrar-grupo');updateBottomNav('entrar-grupo')">
+    <span class="bnav-icon">⊕</span>
+    <span>Entrar</span>
+  </button>
+  <button class="bottom-nav-item" id="bnav-grupos" onclick="showGruposSheet()">
+    <span class="bnav-icon">👥</span>
+    <span>Grupos</span>
+  </button>
+  <button class="bottom-nav-item" id="bnav-perfil" onclick="logout()">
+    <span class="bnav-icon">⏻</span>
+    <span>Sair</span>
+  </button>
+</nav>
+
+<div id="grupos-sheet" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.6)" onclick="if(event.target===this)this.style.display='none'">
+  <div style="position:absolute;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;padding:24px;max-height:70vh;overflow-y:auto">
+    <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:16px">Meus Grupos</div>
+    <div id="sheet-grupos"></div>
+    <div style="height:max(16px,env(safe-area-inset-bottom))"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('token');
+let usuario = JSON.parse(localStorage.getItem('usuario') || 'null');
+let grupos = [];
+let currentGrupoId = null;
+let currentGrupoData = null;
+
+async function req(method, path, body) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json' }
+  };
+  if (token) opts.headers['Authorization'] = `Bearer ${token}`;
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    const msg = typeof e.detail === 'string' ? e.detail : Array.isArray(e.detail) ? e.detail.map(x => x.msg).join(', ') : 'Erro na requisição';
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+async function reqForm(path, body) {
+  const form = new URLSearchParams(body);
+  const r = await fetch(API + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: form
+  });
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    const msg = typeof e.detail === 'string' ? e.detail : Array.isArray(e.detail) ? e.detail.map(x => x.msg).join(', ') : 'Erro na requisição';
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function toggleAuth() {
+  const isLogin = document.getElementById('form-login').style.display !== 'none';
+  document.getElementById('form-login').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('form-cadastro').style.display = isLogin ? 'block' : 'none';
+  document.getElementById('auth-subtitle').textContent = isLogin ? 'Crie sua conta gratuitamente' : 'Divida despesas sem complicação';
+}
+
+async function login() {
+  const email = document.getElementById('login-email').value;
+  const senha = document.getElementById('login-senha').value;
+  document.getElementById('login-erro').textContent = '';
+  try {
+    const data = await reqForm('/auth/login', { username: email, password: senha });
+    token = data.access_token;
+    usuario = data.usuario;
+    localStorage.setItem('token', token);
+    localStorage.setItem('usuario', JSON.stringify(usuario));
+    initApp();
+  } catch (e) {
+    document.getElementById('login-erro').textContent = e.message;
+  }
+}
+
+async function cadastrar() {
+  const nome = document.getElementById('cadastro-nome').value;
+  const email = document.getElementById('cadastro-email').value;
+  const senha = document.getElementById('cadastro-senha').value;
+  document.getElementById('cadastro-erro').textContent = '';
+  try {
+    const data = await req('POST', '/auth/cadastro', { nome, email, senha });
+    token = data.access_token;
+    usuario = data.usuario;
+    localStorage.setItem('token', token);
+    localStorage.setItem('usuario', JSON.stringify(usuario));
+    initApp();
+  } catch (e) {
+    document.getElementById('cadastro-erro').textContent = e.message;
+  }
+}
+
+function logout() {
+  token = null; usuario = null; grupos = [];
+  localStorage.removeItem('token');
+  localStorage.removeItem('usuario');
+  showPage('page-auth');
+}
+
+async function initApp() {
+  showPage('page-app');
+  document.getElementById('sidebar-nome').textContent = usuario.nome;
+  document.getElementById('sidebar-email').textContent = usuario.email;
+  document.getElementById('sidebar-avatar').textContent = usuario.nome[0].toUpperCase();
+  document.getElementById('mobile-avatar').textContent = usuario.nome[0].toUpperCase();
+  await carregarGrupos();
+  showSection('dashboard');
+}
+
+async function carregarGrupos() {
+  grupos = await req('GET', '/grupos');
+  renderSidebarGrupos();
+  renderDashboard();
+}
+
+function renderSidebarGrupos() {
+  const el = document.getElementById('sidebar-grupos');
+  el.innerHTML = grupos.map(g => `
+    <div class="group-nav ${currentGrupoId === g.id ? 'active' : ''}" onclick="showGrupo(${g.id})">
+      <span class="group-name">${g.nome}</span>
+      <span style="font-size:11px;color:var(--muted)">${g.participantes.length}p</span>
+    </div>
+  `).join('');
+}
+
+function renderDashboard() {
+  const el = document.getElementById('dashboard-content');
+  if (grupos.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">💸</div><div class="empty-title">Nenhum grupo ainda</div><p>Crie ou entre em um grupo para começar</p></div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div class="grid-3" style="margin-bottom:24px">
+      <div class="stat-card">
+        <div class="stat-label">Grupos</div>
+        <div class="stat-value green">${grupos.length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total participações</div>
+        <div class="stat-value">${grupos.reduce((a,g) => a + g.participantes.length, 0)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Grupos ativos</div>
+        <div class="stat-value green">${grupos.length}</div>
+      </div>
+    </div>
+    <div class="card-title">Seus Grupos</div>
+    ${grupos.map(g => `
+      <div class="despesa-item" onclick="showGrupo(${g.id})" style="cursor:pointer">
+        <div class="despesa-icon">👥</div>
+        <div class="despesa-info">
+          <div class="despesa-desc">${g.nome}</div>
+          <div class="despesa-meta">${g.participantes.length} participante(s) · Criador: ${g.participantes.find(p=>p.id===g.criador_id)?.nome||'—'}</div>
+        </div>
+        <div style="color:var(--muted);font-size:18px">›</div>
+      </div>
+    `).join('')}
+  `;
+}
+
+function showSection(s) {
+  document.querySelectorAll('.section').forEach(x => x.style.display = 'none');
+  document.getElementById('section-' + s).style.display = 'block';
+  document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+  const nav = document.getElementById('nav-' + s);
+  if (nav) nav.classList.add('active');
+  if (s !== 'grupo') currentGrupoId = null;
+  renderSidebarGrupos();
+}
+
+async function showGrupo(id) {
+  currentGrupoId = id;
+  const grupo = grupos.find(g => g.id === id);
+  if (!grupo) return;
+  currentGrupoData = grupo;
+
+  document.querySelectorAll('.section').forEach(x => x.style.display = 'none');
+  document.getElementById('section-grupo').style.display = 'block';
+  document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+  renderSidebarGrupos();
+
+  document.getElementById('grupo-titulo').textContent = grupo.nome;
+  document.getElementById('grupo-desc').textContent = `${grupo.participantes.length} participante(s)`;
+  document.getElementById('convite-tag').dataset.link = grupo.link_convite;
+
+  const participantesEl = document.getElementById('participantes-lista');
+  participantesEl.innerHTML = grupo.participantes.map(p => `
+    <div class="participant-tag">
+      <div class="avatar" style="width:24px;height:24px;font-size:11px">${p.nome[0].toUpperCase()}</div>
+      ${p.nome}
+    </div>
+  `).join('');
+
+  const [despesas, saldos] = await Promise.all([
+    req('GET', `/grupos/${id}/despesas`),
+    req('GET', `/grupos/${id}/saldos`)
+  ]);
+
+  const saldosEl = document.getElementById('saldos-lista');
+  saldosEl.innerHTML = saldos.map(s => {
+    const cls = s.saldo > 0.01 ? 'saldo-positivo' : s.saldo < -0.01 ? 'saldo-negativo' : 'saldo-zero';
+    const sinal = s.saldo > 0.01 ? '+' : '';
+    return `
+      <div class="saldo-item">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar">${s.nome[0].toUpperCase()}</div>
+          <div class="saldo-nome">${s.nome}</div>
+        </div>
+        <div class="saldo-valor ${cls}">${sinal}R$ ${s.saldo.toFixed(2)}</div>
+      </div>
+    `;
+  }).join('');
+
+  const despesasEl = document.getElementById('despesas-lista');
+  if (despesas.length === 0) {
+    despesasEl.innerHTML = `<div class="empty-state"><div class="empty-icon">🧾</div><div class="empty-title">Nenhuma despesa</div><p>Registre o primeiro gasto do grupo</p></div>`;
+  } else {
+    despesasEl.innerHTML = despesas.map(d => `
+      <div class="despesa-item">
+        <div class="despesa-icon">💳</div>
+        <div class="despesa-info">
+          <div class="despesa-desc">${d.descricao}</div>
+          <div class="despesa-meta">Pago por ${d.pago_por.nome} · ${new Date(d.data).toLocaleDateString('pt-BR')} · ${d.divisoes.length} pessoa(s)</div>
+          <div style="margin-top:6px;font-size:12px;color:var(--muted)">
+            ${d.divisoes.map(div => `${div.usuario.nome}: R$ ${div.valor_devido.toFixed(2)}`).join(' · ')}
+          </div>
+        </div>
+        <div class="despesa-valor">R$ ${d.valor.toFixed(2)}</div>
+      </div>
+    `).join('');
+  }
+}
+
+function copiarConvite() {
+  const link = document.getElementById('convite-tag').dataset.link;
+  navigator.clipboard.writeText(link).then(() => toast('Link copiado! ✓'));
+}
+
+async function criarGrupo() {
+  const nome = document.getElementById('novo-grupo-nome').value.trim();
+  document.getElementById('novo-grupo-erro').textContent = '';
+  if (!nome) { document.getElementById('novo-grupo-erro').textContent = 'Informe o nome do grupo'; return; }
+  try {
+    const g = await req('POST', '/grupos', { nome });
+    await carregarGrupos();
+    document.getElementById('novo-grupo-nome').value = '';
+    toast(`Grupo "${g.nome}" criado! ✓`);
+    showGrupo(g.id);
+  } catch (e) {
+    document.getElementById('novo-grupo-erro').textContent = e.message;
+  }
+}
+
+async function entrarGrupo() {
+  const link = document.getElementById('entrar-link').value.trim();
+  document.getElementById('entrar-erro').textContent = '';
+  if (!link) { document.getElementById('entrar-erro').textContent = 'Cole o código de convite'; return; }
+  try {
+    const g = await req('POST', `/grupos/entrar/${link}`);
+    await carregarGrupos();
+    document.getElementById('entrar-link').value = '';
+    toast(`Entrou no grupo "${g.nome}"! ✓`);
+    showGrupo(g.id);
+  } catch (e) {
+    document.getElementById('entrar-erro').textContent = e.message;
+  }
+}
+
+function showRegistrarDespesa() {
+  if (!currentGrupoData) return;
+  document.querySelectorAll('.section').forEach(x => x.style.display = 'none');
+  document.getElementById('section-nova-despesa').style.display = 'block';
+
+  document.getElementById('desp-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('desp-valor').value = '';
+  document.getElementById('desp-desc').value = '';
+  document.getElementById('desp-preview').style.display = 'none';
+
+  const checkboxes = document.getElementById('desp-participantes');
+  checkboxes.innerHTML = currentGrupoData.participantes.map(p => `
+    <label class="checkbox-item">
+      <input type="checkbox" value="${p.id}" checked onchange="updatePreview()" />
+      <div class="avatar" style="width:28px;height:28px;font-size:12px">${p.nome[0].toUpperCase()}</div>
+      ${p.nome}${p.id === usuario.id ? ' <span style="color:var(--muted);font-size:12px">(você)</span>' : ''}
+    </label>
+  `).join('');
+
+  document.getElementById('desp-valor').addEventListener('input', updatePreview);
+}
+
+function updatePreview() {
+  const valor = parseFloat(document.getElementById('desp-valor').value) || 0;
+  const selecionados = document.querySelectorAll('#desp-participantes input:checked').length;
+  if (valor > 0 && selecionados > 0) {
+    document.getElementById('desp-preview').style.display = 'block';
+    document.getElementById('desp-por-pessoa').textContent = `R$ ${(valor / selecionados).toFixed(2)}`;
+  } else {
+    document.getElementById('desp-preview').style.display = 'none';
+  }
+}
+
+async function registrarDespesa() {
+  const descricao = document.getElementById('desp-desc').value.trim();
+  const valor = parseFloat(document.getElementById('desp-valor').value);
+  const data = document.getElementById('desp-data').value;
+  const participantes_ids = Array.from(document.querySelectorAll('#desp-participantes input:checked')).map(c => parseInt(c.value));
+  document.getElementById('desp-erro').textContent = '';
+
+  if (!descricao || !valor || !data || participantes_ids.length === 0) {
+    document.getElementById('desp-erro').textContent = 'Preencha todos os campos e selecione ao menos um participante';
+    return;
+  }
+
+  try {
+    await req('POST', '/despesas', { descricao, valor, data, grupo_id: currentGrupoId, participantes_ids });
+    toast('Despesa registrada! ✓');
+    showGrupo(currentGrupoId);
+  } catch (e) {
+    document.getElementById('desp-erro').textContent = e.message;
+  }
+}
+
+if (token && usuario) {
+  initApp();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const loginForm = document.getElementById('form-login');
+    if (loginForm.style.display !== 'none') login();
+  }
+});
+
+function updateBottomNav(section) {
+  document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('bnav-' + section);
+  if (btn) btn.classList.add('active');
+}
+
+function showGruposSheet() {
+  document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('bnav-grupos').classList.add('active');
+  const sheet = document.getElementById('grupos-sheet');
+  const el = document.getElementById('sheet-grupos');
+  el.innerHTML = grupos.length === 0
+    ? '<p style="color:var(--muted);text-align:center;padding:20px">Nenhum grupo ainda</p>'
+    : grupos.map(g => `
+        <div class="despesa-item" onclick="document.getElementById('grupos-sheet').style.display='none';showGrupo(${g.id})" style="cursor:pointer;margin-bottom:10px">
+          <div class="despesa-icon">👥</div>
+          <div class="despesa-info">
+            <div class="despesa-desc">${g.nome}</div>
+            <div class="despesa-meta">${g.participantes.length} participante(s)</div>
+          </div>
+          <div style="color:var(--muted)">›</div>
+        </div>`).join('');
+  sheet.style.display = 'block';
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const btn = document.getElementById('install-btn');
+  if (btn) btn.style.display = 'flex';
+});
+
+window.addEventListener('appinstalled', () => {
+  const btn = document.getElementById('install-btn');
+  if (btn) btn.style.display = 'none';
+});
+</script>
+</body>
+</html>
